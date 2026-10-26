@@ -18,3 +18,9 @@
 | 插件商店 | 未提交 | 完成相应发布与验收门槛后提交，最终以维护者审核为准 |
 
 本地试听音频保存在开发目录 `artifacts/`，不进入仓库或插件包。未下载、打包或发布任何用户参考音频。
+
+## 2026-10-27 CI 调度修正
+
+[运行 40359681784](https://github.com/Yang456233/maibot-voicebox/actions/runs/40359681784) 的 Ubuntu Python 3.11／3.13 检查全部通过。两组 macOS 任务没有执行任何测试步骤：GitHub 注明 ARM runner 容量不足，多次分配失败后取消任务。这不是单元测试断言失败。
+
+CI 将 macOS 改为官方标准 `macos-15-intel`，保留 Python 3.11／3.13、全部测试及打包检查，并关闭矩阵 fail-fast，确保一组失败不会取消其他组。云端 macOS 检查覆盖 Intel；Apple Silicon 的本地验证不能等同于云端 ARM 矩阵通过。
