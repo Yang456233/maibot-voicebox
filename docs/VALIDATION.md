@@ -13,7 +13,8 @@
 | IndexTTS MPS／CPU 耗时与内存 | 待验收 | 提供桥接健康指标与 benchmark 工具，未承诺实时速度 |
 | 情绪与音色人工试听 | 待验收 | 只内置日常；开心／安慰候选不作为已验证推荐发布 |
 | QQ 附件、历史原文、无重复 | 待验收 | 单元测试通过，但不等同真实客户端验收 |
-| GitHub Release | 待发布 | 用户已创建目标公开仓库；源码上传及预发布尚待完成 |
+| GitHub 源码 | 已上传 | 2026-10-27 上传到 [Yang456233/maibot-voicebox](https://github.com/Yang456233/maibot-voicebox) |
+| GitHub Release | 以发布页为准 | [查看预发布与安装包](https://github.com/Yang456233/maibot-voicebox/releases)；不能据此推断待验收项目已通过 |
 | 插件商店 | 未提交 | 完成相应发布与验收门槛后提交，最终以维护者审核为准 |
 
 本地试听音频保存在开发目录 `artifacts/`，不进入仓库或插件包。未下载、打包或发布任何用户参考音频。
