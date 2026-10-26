@@ -1,0 +1,59 @@
+[plugin]
+enabled = true
+config_version = "0.1.0"
+default_role = "xiaoxiao"
+max_text_length = 200
+timeout = 45.0
+cooldown = 3.0
+cache_entries = 32
+cache_mb = 32
+
+[edge]
+proxy = ""
+retries = 1
+
+[index]
+url = "http://127.0.0.1:7861"
+token = ""
+
+[translation]
+model_task = "utils"
+keep_chinese = true
+
+[admin]
+qqs = [] # 填写有管理权限的 QQ 号字符串
+
+[[roles.items]]
+id = "xiaoxiao"
+name = "晓晓"
+backend = "edge"
+voice = "zh-CN-XiaoxiaoNeural"
+japanese_voice = "ja-JP-NanamiNeural"
+language = "zh"
+rate = 0
+pitch = 0
+volume = 0
+
+[[roles.items]]
+id = "xingnai"
+name = "星奈（待导入声音）"
+backend = "index"
+reference = ""
+source = ""
+emotions = ["日常"]
+default_emotion = "日常"
+
+[[roles.items]]
+id = "yuebai"
+name = "月白（待导入声音）"
+backend = "index"
+reference = ""
+source = ""
+emotions = ["日常"]
+default_emotion = "日常"
+
+[[emotions.presets]]
+name = "日常"
+vector = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+reference = ""
+strength = 0.6
