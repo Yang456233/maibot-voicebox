@@ -1,59 +1,88 @@
+# 麦麦声匣：带注释的配置示例。实际配置由 SDK 写入插件安装目录 config.toml。
+# 建议入口：麦麦 WebUI → 插件配置 → 麦麦声匣。
+# 修改本示例文件不会改变已运行的插件；不要直接覆盖已有密钥、管理员或角色配置。
+
 [plugin]
-enabled = true
-config_version = "0.1.0"
+enabled = true                  # 是否启用；关闭不删除会话与角色
+config_version = "0.1.0"        # 配置格式版本，通常不手动改
+# 无会话绑定时使用的角色 ID；已有聊天用 /声匣 切换 <ID> 修改绑定。
 default_role = "xiaoxiao"
-max_text_length = 200
-timeout = 45.0
-cooldown = 3.0
-cache_entries = 32
-cache_mb = 32
+max_text_length = 200            # 10～500 字符；超过保留文字，不截断
+timeout = 45.0                  # 总预算 5～50 秒；包括翻译和等待，超时回退文字
+cooldown = 3.0                  # 同会话成功合成后的间隔，0～60 秒；试听也适用
+cache_entries = 32              # 内存缓存 0～128 条；0 关闭缓存
+cache_mb = 32                   # 缓存上限 1～128 MB，与条数同时约束；重载清空
 
 [edge]
+# 留空直连；仅在需要时填代理，例如 http://127.0.0.1:7890（用你的实际端口）。
 proxy = ""
-retries = 1
+retries = 1                     # 0～2 次额外重试；1 表示最多尝试两次，仍受总预算限制
 
 [index]
+# 本项目桥接服务的根地址，不附加 /v1 或 /tts；只使用 Edge 时不用启动此服务。
 url = "http://127.0.0.1:7861"
+# 本机未设鉴权时留空；远程必须 HTTPS，密钥需与服务端 VOICEBOX_TOKEN 相同。
 token = ""
 
 [translation]
-model_task = "utils"
-keep_chinese = true
+model_task = "utils"             # 麦麦已有模型任务名称，仅日语翻译模式调用
+keep_chinese = true             # 日语语音保留中文原文文字；翻译失败仍回退原文
 
 [admin]
-qqs = [] # 填写有管理权限的 QQ 号字符串
+# QQ 号必须是字符串，例如 ["123456789"]，不是群号或昵称。
+# 空列表不影响私聊用户管理自己会话，但群聊设置、角色包导入导出、清缓存无管理员可用。
+qqs = []
 
+# 声源配置从这里开始。可以新增多个 [[roles.items]]，每个 ID 必须唯一。
 [[roles.items]]
-id = "xiaoxiao"
-name = "晓晓"
-backend = "edge"
-voice = "zh-CN-XiaoxiaoNeural"
-japanese_voice = "ja-JP-NanamiNeural"
-language = "zh"
-rate = 0
-pitch = 0
-volume = 0
+id = "xiaoxiao"                 # 小写字母开头，可含数字、_、-，最长 48；命令用此 ID
+name = "晓晓"                    # 显示名，不改变麦麦人格
+backend = "edge"                # edge：在线预设音色；index：独立模型参考声音
+# 在安装了 edge-tts 的环境执行 python -m edge_tts --list-voices 查询，复制 ShortName。
+voice = "zh-CN-XiaoxiaoNeural"   # 原文模式实际使用的音色，不是昵称或音频路径
+japanese_voice = "ja-JP-NanamiNeural" # /声匣 语言 日语 时使用；必须 ja- 开头
+language = "zh"                 # 原文语言 zh/ja/en；不自动翻译，需匹配 voice 前缀
+rate = 0                        # 仅 Edge，-50～100（%）；正数更快，负数更慢
+pitch = 0                       # 仅 Edge，-50～50（Hz）；正数更高，负数更低
+volume = 0                      # 仅 Edge，-100～100（%）；0 是不调整，不是静音
+# rate/pitch/volume 只填数值，不加 % 或 Hz；不等于克隆或情绪控制。
 
 [[roles.items]]
 id = "xingnai"
 name = "星奈（待导入声音）"
 backend = "index"
+language = "zh"
+# 先把文件放到插件数据目录 assets/xingnai/voice.wav，再填 "xingnai/voice.wav"。
+# 默认数据目录：<麦麦实例>/data/plugins/github.Yang456233.maibot-voicebox/
+# 不填绝对路径、URL 或 assets/ 前缀。WAV/MP3，最大 20MB；桥接校验 0.5～30 秒。
+# PCM WAV 无需 FFmpeg，MP3 需要模型服务端有 FFmpeg。留空使模板保持未就绪。
 reference = ""
-source = ""
-emotions = ["日常"]
-default_emotion = "日常"
+source = ""                     # 填素材来源与授权说明；IndexTTS 角色包导入必须非空
+duration_factor = 1.0           # 仅 IndexTTS，0.5～2；先保持 1，具体效果需模型试听
+emotions = ["日常"]              # AI 允许选择的已定义预设名称；新增预设需同步加入这里
+default_emotion = "日常"         # 未选择或非法选择的回退值，应在预设及可选列表里
+# IndexTTS 忽略 Edge 的 voice、japanese_voice、rate、pitch、volume。
 
 [[roles.items]]
 id = "yuebai"
 name = "月白（待导入声音）"
 backend = "index"
-reference = ""
+language = "zh"
+reference = ""                  # 同上；可填写 yuebai/voice.wav，先准备对应文件
 source = ""
+duration_factor = 1.0
 emotions = ["日常"]
 default_emotion = "日常"
 
+# 仅 IndexTTS 使用，Edge 忽略此节。
 [[emotions.presets]]
-name = "日常"
+name = "日常"                    # 预设名称必须唯一，角色按名字引用
+# 恰好 8 项，每项 0～1：开心、生气、悲伤、害怕、厌恶、低落、惊讶、平静。
+# 全零且没有情绪参考音频时使用模型默认表达；不是强制“平静”情绪。
 vector = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
-reference = ""
-strength = 0.6
+reference = ""                  # 可选，如 xingnai/happy.wav；非空时优先于 vector
+strength = 0.6                  # 0～1，传给 emo_alpha，实际效果以模型实现与试听为准
+
+# 保存后：/声匣 角色 → /声匣 试听 xiaoxiao → /声匣 切换 xiaoxiao。
+# 试听不更改绑定；/声匣 模式 持续 开启持续语音，/声匣 模式 文字 恢复文字。
+# 导入角色与页面角色同 ID 时，导入角色优先；需修改角色包重导入或换新 ID。

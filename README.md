@@ -19,7 +19,7 @@
 
 目标兼容范围：MaiBot `1.3.14–1.3.99`，SDK `2.16.0–2.16.99`。接入范围限定 QQ；验收目标为 SnowLuma。其他平台未验证。
 
-1. 下载发布页的源码 ZIP，使用麦麦 WebUI 的“本地 ZIP 安装”，或把仓库内容放入实例的 `plugins/maibot-voicebox/`。
+1. 下载 [Release 安装包](https://github.com/Yang456233/maibot-voicebox/releases) `maibot-voicebox-0.1.0.zip`，使用麦麦 WebUI 的“本地 ZIP 安装”，或把仓库内容放入实例的 `plugins/maibot-voicebox/`。安装后按宿主提示重启并确认加载成功。
 2. 在标准配置页设置管理员 QQ 号；保留默认 Edge 角色即可开始。
 3. 在允许测试的私聊中发送 `/声匣 状态`，然后 `/声匣 试听 xiaoxiao`。
 4. 想用克隆声音，再按 [IndexTTS 部署指南](docs/INDEXTTS.md) 启动独立服务并导入角色包。
@@ -27,6 +27,135 @@
 尚无公开 Release 时，可在开发环境运行 `python scripts/package.py` 生成 ZIP。源码根目录必须有 `_manifest.json` 和 `plugin.py`。由宿主安装 manifest 声明的 `edge-tts`、`aiohttp`；**不要在麦麦环境安装 torch、IndexTTS 模型依赖**。
 
 默认配置由 SDK 生成，参考 [config.example.toml](config.example.toml)。配置区包括插件与行为、Edge 服务、IndexTTS 服务、角色、IndexTTS 语气、中日翻译、管理员。角色列表可以重复添加项目，修改后由宿主热更新。Edge 角色仅使用 Edge 字段；IndexTTS 角色仅使用参考音频、时长和语气字段。
+
+## 声源在哪里配置
+
+打开麦麦 WebUI → **插件配置 → 麦麦声匣 → 角色 → 角色列表**。默认本机入口是 [http://127.0.0.1:8001/plugin-config](http://127.0.0.1:8001/plugin-config)，若你修改了 WebUI 端口请使用实际地址。首版使用麦麦标准配置页，没有独立的角色管理或音频上传页面。
+
+| 你想做什么 | 要改的位置 |
+|---|---|
+| 更换 Edge 声音 | 角色列表 → 对应角色 → `Edge 音色 ID`（`voice`） |
+| 调整语速、音调、音量 | 同一角色的 `rate`、`pitch`、`volume` |
+| 使用自己的参考声音 | 角色的引擎选 `index`，填写 `reference`，另配置 IndexTTS 服务 |
+| 更换日语模式声音 | Edge 角色的 `japanese_voice` |
+| 设置没有绑定角色的会话使用哪个声音 | 插件与行为 → `default_role` |
+| 切换当前聊天正在用的声音 | 聊天中发送 `/声匣 切换 <角色 ID>` |
+
+**先保存配置，再试听，最后切换。** `/声匣 试听` 不改变绑定；修改 `default_role` 不会覆盖已有会话绑定。修改已绑定角色的音色字段，则会作用于该角色后续合成。
+
+### Edge：使用在线预设音色
+
+Edge 不需要参考音频或本插件中的 API Key，但需要联网。默认角色 `xiaoxiao` 使用 `zh-CN-XiaoxiaoNeural`。角色名称“晓晓”只是显示名，实际声音由 `voice` 决定。
+
+1. 展开 `xiaoxiao`，保留引擎 `edge`、语言 `zh`，修改 `voice` 为可用的中文音色 ID；也可以新增角色并分配唯一 ID。
+2. 保存配置。在私聊发送 `/声匣 试听 xiaoxiao`，试听成功后发送 `/声匣 切换 xiaoxiao`。
+3. 需要持续语音时，再发送 `/声匣 模式 持续`。仅切换声音不会自动开启持续模式。
+
+音色列表以当前 Edge 服务返回为准。在**已安装 edge-tts 的 Python 环境**运行：
+
+```sh
+python -m edge_tts --list-voices
+```
+
+复制列表 `Name` 列的完整音色 ID（API 中的 `ShortName`）到 `voice`；中文原文模式选 `zh-` 开头的音色。使用代理时可运行 `python -m edge_tts --proxy http://127.0.0.1:7890 --list-voices`，端口替换成自己的代理端口。音色目录查询说明见 [edge-tts 上游文档](https://github.com/rany2/edge-tts#changing-the-voice)。
+
+“中文转日语”在聊天里用 `/声匣 语言 日语` 开启，使用 `japanese_voice`（默认 `ja-JP-NanamiNeural`），并调用麦麦的翻译模型任务。`language = "ja"` 只声明原文语言，不会把中文自动翻成日语。
+
+### IndexTTS：使用自己的参考声音
+
+需要先按 [独立部署指南](docs/INDEXTTS.md) 启动本项目桥接服务；只填写文件路径不会自动安装模型。当前模型实机验收仍未完成，见 [验证记录](docs/VALIDATION.md)。
+
+直接在标准配置页配置时，目录关系如下（`<麦麦实例>` 为你实际运行的实例目录）：
+
+```text
+<麦麦实例>/
+  plugins/<声匣安装目录>/config.toml       # SDK 生成的配置
+  data/plugins/github.Yang456233.maibot-voicebox/
+    assets/
+      xingnai/voice.wav                   # 你放入的参考声音
+      xingnai/happy.wav                   # 可选情绪参考声音
+    imports/                             # 待导入角色包
+    exports/                             # 导出角色包
+```
+
+这些数据目录由 SDK 分配，以上是当前验收环境的默认布局；自定义部署以宿主实际路径为准。`reference` 是相对于 **assets/** 的路径，不是相对于代码仓库，也不是远程模型服务器的路径。
+
+1. 把自己的清晰单人录音放到 `assets/xingnai/voice.wav`。支持 WAV／MP3，单文件不超过 20MB，桥接服务要求 0.5～30 秒；优先使用 PCM WAV，MP3 在服务端需要 FFmpeg。
+2. 在角色 `xingnai` 中设置 `backend = "index"`、`reference = "xingnai/voice.wav"`，填写 `source` 记录来源与使用范围；原文为中文时保留 `language = "zh"`。不要填完整系统路径、URL 或 `assets/` 前缀。
+3. 在 IndexTTS 服务中填写桥接根地址，例如 `http://127.0.0.1:7861`，不要附加 `/v1` 或 `/tts`。远程地址必须为 HTTPS，并配置服务密钥。
+4. 保存后执行 `/声匣 角色`、`/声匣 状态`，再 `/声匣 试听 xingnai`、`/声匣 切换 xingnai`。
+
+远程服务也从麦麦侧上传音频并引用资源 ID，无需把本地路径映射到服务器。模板缺少文件时显示“未就绪”；资源配置就绪仍需模型服务可用才能合成。
+
+也可以通过 [角色包导入](docs/ROLE_PACKS.md) 一次添加声音和语气。**导入角色与 WebUI 角色同 ID 时，导入版本优先**，此时请修改角色包重新导入，或在 WebUI 使用不同 ID；否则只改页面里的同名角色不会生效。
+
+## 配置参数说明
+
+完整可复制示例见 [带中文注释的 config.example.toml](config.example.toml)。修改示例文件本身不会改变运行配置；请在 WebUI 保存，或修改插件实际安装目录的 `config.toml`。不要用示例覆盖已有配置、管理员或密钥。
+
+### 插件与行为 `[plugin]`
+
+| 参数 | 默认值 | 含义 |
+|---|---|---|
+| `enabled` | `true` | 是否启用声匣；关闭不删除会话与角色 |
+| `config_version` | `"0.1.0"` | 配置格式版本，通常不手动修改 |
+| `default_role` | `"xiaoxiao"` | 无显式绑定时使用的角色 ID；不是音色 ID |
+| `max_text_length` | `200` | 10～500；按文本字符数检查，超长保留文字，不截断 |
+| `timeout` | `45.0` | 5～50 秒；含排队与翻译的总预算，超时保留文字 |
+| `cooldown` | `3.0` | 0～60 秒；同一会话成功合成后的冷却时间，试听也受限制 |
+| `cache_entries` | `32` | 0～128 条；0 关闭内存缓存 |
+| `cache_mb` | `32` | 1～128 MB；与条数共同限制缓存，重载后清空 |
+
+### 服务 `[edge]`、`[index]`
+
+| 参数 | 默认值 | 含义 |
+|---|---|---|
+| `edge.proxy` | `""` | 留空直连；需要时填 HTTP 代理地址，如 `http://127.0.0.1:7890`，端口以代理软件为准 |
+| `edge.retries` | `1` | 0～2；失败后的额外重试次数，仍受总超时限制 |
+| `index.url` | `"http://127.0.0.1:7861"` | 本项目桥接根地址；仅用 Edge 时可保留默认且不启动服务 |
+| `index.token` | `""` | 本机未设置鉴权时可空；远程必须与服务端 `VOICEBOX_TOKEN` 一致，不放进角色包 |
+
+### 每个角色 `[[roles.items]]`
+
+| 参数 | 默认值 | 适用与说明 |
+|---|---|---|
+| `id` | 自行指定 | 稳定唯一 ID，小写字母开头，可含数字、`_`、`-`，最长 48 字符；命令和会话绑定使用它 |
+| `name` | `"角色"` | 显示名，1～50 字符，不改变麦麦人格；重名时用 ID 操作 |
+| `backend` | `"edge"` | `edge` 在线预设音色；`index` 独立参考声音模型 |
+| `language` | `"zh"` | 原文语言：`zh`／`ja`／`en`；不触发翻译，Edge `voice` 前缀须匹配 |
+| `voice` | `"zh-CN-XiaoxiaoNeural"` | 仅 Edge；原文模式的完整音色 ID |
+| `japanese_voice` | `"ja-JP-NanamiNeural"` | 仅 Edge；日语翻译模式的音色，须以 `ja-` 开头 |
+| `rate` | `0` | 仅 Edge；-50～100，相对语速百分比；正数更快、负数更慢 |
+| `pitch` | `0` | 仅 Edge；-50～50 Hz，相对音调偏移；正数更高、负数更低 |
+| `volume` | `0` | 仅 Edge；-100～100，相对音量百分比；`0` 保持原值，不是静音 |
+| `reference` | `""` | 仅 IndexTTS；相对 `assets/` 的参考音频路径，留空表示模板未就绪 |
+| `duration_factor` | `1.0` | 仅 IndexTTS；0.5～2，传给模型的时长倍率，先保持 1 再试听调整 |
+| `default_emotion` | `"日常"` | 仅 IndexTTS；未选／选错语气时使用；应同时存在于预设和本角色可选列表 |
+| `emotions` | `["日常"]` | 仅 IndexTTS；AI 允许选择的预设名称列表 |
+| `source` | `""` | 素材来源和授权说明，最多 1000 字符；IndexTTS 角色包导入要求非空 |
+
+`rate`、`pitch`、`volume` 在页面和 TOML 中只填数字，不要加 `%` 或 `Hz`。Edge 忽略参考音频和情绪参数，IndexTTS 忽略 Edge 音色和这三个调节项。
+
+### IndexTTS 语气 `[[emotions.presets]]`
+
+| 参数 | 默认值 | 含义 |
+|---|---|---|
+| `name` | `"日常"` | 唯一预设名称，角色通过名称引用 |
+| `vector` | 8 个 `0` | 每项 0～1；顺序为开心、生气、悲伤、害怕、厌恶、低落、惊讶、平静 |
+| `reference` | `""` | 可选情绪参考音频，相对 `assets/`；提供时优先使用它，忽略向量 |
+| `strength` | `0.6` | 0～1，传给 IndexTTS `emo_alpha`；实际效果取决于模型对参考音频／向量的处理，需试听 |
+
+全零向量且没有情绪参考音频时使用模型默认表达。“日常”只是预设名称，不会额外强制“平静”向量。新增语气后，还需把名称加入角色的 `emotions`。首版没有验证过的“开心”“安慰”推荐值。
+
+### 中日翻译 `[translation]` 与管理员 `[admin]`
+
+| 参数 | 默认值 | 含义 |
+|---|---|---|
+| `translation.model_task` | `"utils"` | 麦麦已配置的模型任务名；只在日语模式翻译，原文模式不调用 |
+| `translation.keep_chinese` | `true` | 日语语音保留中文原文文字；翻译失败始终回退原文 |
+| `admin.qqs` | `[]` | 管理员 QQ 号字符串列表，如 `["123456789"]`；不要填昵称或群号 |
+
+管理员列表为空时，私聊仍能切换自己的角色和模式，但没人能用管理员命令导入／导出角色包或修改群聊语音设置。私聊设置、语音模式及语言记录在插件数据目录的 `state.json`，不在这里重复设置。
 
 ## 聊天命令
 
