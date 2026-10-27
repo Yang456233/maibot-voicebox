@@ -5,6 +5,7 @@ import hashlib
 import hmac
 import io
 import json
+import logging
 import os
 from pathlib import Path
 import subprocess
@@ -160,10 +161,9 @@ def create_app(settings=None, model_factory=IndexModel):
         try:
             model = await asyncio.to_thread(model_factory, settings)
             status.update(ready=True, message="模型已加载", load_seconds=round(time.monotonic() - started, 3))
-        except Exception as exc:
+        except Exception:
             status.update(ready=False, message="模型加载失败，请检查服务日志")
-            import logging
-            logging.getLogger("voicebox.bridge").error("模型加载失败：%s", type(exc).__name__)
+            logging.getLogger("voicebox.bridge").exception("模型加载失败")
             return
         while True:
             job = await queue.get()
@@ -185,6 +185,7 @@ def create_app(settings=None, model_factory=IndexModel):
                 if not future.done():
                     future.set_result(data)
             except Exception:
+                logging.getLogger("voicebox.bridge").exception("模型合成失败")
                 if not future.done():
                     future.set_exception(ValueError("模型合成失败"))
             finally:
@@ -213,6 +214,12 @@ def create_app(settings=None, model_factory=IndexModel):
     async def auth(authorization: str = Header(default="")):
         if settings.token and not hmac.compare_digest(authorization, "Bearer " + settings.token):
             raise HTTPException(401, "服务密钥错误")
+
+    @app.get("/", dependencies=[Depends(auth)])
+    async def index():
+        return {"service": "麦麦声匣 IndexTTS 2.5 桥接", "ready": status["ready"],
+                "message": status["message"], "health": "/v1/health",
+                "note": "声音角色请在麦麦 WebUI 的声匣插件配置中设置"}
 
     @app.get("/v1/health", dependencies=[Depends(auth)])
     async def health():

@@ -63,7 +63,7 @@ python -m edge_tts --list-voices
 
 ### IndexTTS：使用自己的参考声音
 
-需要先按 [独立部署指南](docs/INDEXTTS.md) 启动本项目桥接服务；只填写文件路径不会自动安装模型。当前模型实机验收仍未完成，见 [验证记录](docs/VALIDATION.md)。
+需要先按 [独立部署指南](docs/INDEXTTS.md) 启动本项目桥接服务；只填写文件路径不会自动安装模型。MPS 中日短句真实合成已通过；QQ 播放、人工试听和 CPU 性能仍待验收，见 [验证记录](docs/VALIDATION.md)。
 
 直接在标准配置页配置时，目录关系如下（`<麦麦实例>` 为你实际运行的实例目录）：
 
